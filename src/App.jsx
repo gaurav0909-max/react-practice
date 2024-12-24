@@ -1,18 +1,30 @@
 import { useState } from "react";
 import "./App.css";
 import { useGetPostsQuery, useCretePostsMutation } from "./services/jsonPlaceholderApi";
+import { useForm } from "react-hook-form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PlusCircle, MessageSquare, Loader2 } from "lucide-react";
 
 function App() {
-  const [newPost, setNewPost] = useState({ title: "", body: "", id: 99999 });
   const { data, error, isLoading, refetch } = useGetPostsQuery();
   const [createPost, { isLoading: isCreating, error: createError }] = useCretePostsMutation();
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm();
+
+  const handleCreatePost = async (formData) => {
+    await createPost({ ...formData, id: Date.now() });
+    reset();
+    refetch();
+  };
 
   if (isLoading) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -32,12 +44,6 @@ function App() {
       </Card>
     </div>
   );
-
-  const handleCreatePost = async () => {
-    await createPost(newPost);
-    setNewPost({ title: "", body: "", id: 99999 });
-    refetch();
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-8 w-screen">
@@ -62,46 +68,54 @@ function App() {
                 Create New Post
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={newPost.title}
-                  placeholder="Enter post title..."
-                  onChange={(e) =>
-                    setNewPost((prev) => ({ ...prev, title: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="body">Content</Label>
-                <Input
-                  id="body"
-                  value={newPost.body}
-                  placeholder="Enter post content..."
-                  onChange={(e) =>
-                    setNewPost((prev) => ({ ...prev, body: e.target.value }))
-                  }
-                />
-              </div>
+            <CardContent>
+              <form onSubmit={handleSubmit(handleCreatePost)} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    placeholder="Enter post title..."
+                    {...register("title", { required: "Title is required" })}
+                  />
+                  {errors.title && (
+                    <p className="text-sm text-red-600">{errors.title.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="body">Content</Label>
+                  <Input
+                    id="body"
+                    placeholder="Enter post content..."
+                    {...register("body", {
+                      required: "Content is required",
+                      minLength: {
+                        value: 10,
+                        message: "Content must be at least 10 characters long",
+                      },
+                    })}
+                  />
+                  {errors.body && (
+                    <p className="text-sm text-red-600">{errors.body.message}</p>
+                  )}
+                </div>
+                <CardFooter>
+                  <Button
+                    className="w-full"
+                    type="submit"
+                    disabled={isCreating}
+                  >
+                    {isCreating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      "Create Post"
+                    )}
+                  </Button>
+                </CardFooter>
+              </form>
             </CardContent>
-            <CardFooter>
-              <Button
-                className="w-full"
-                onClick={handleCreatePost}
-                disabled={isCreating || !newPost.title || !newPost.body}
-              >
-                {isCreating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  "Create Post"
-                )}
-              </Button>
-            </CardFooter>
           </Card>
 
           {/* Posts List Section */}
@@ -115,7 +129,7 @@ function App() {
             <CardContent>
               <ScrollArea className="h-[400px] pr-4">
                 <div className="space-y-4">
-                  {data?.map((post) => (
+                  {/* {data?.map((post) => (
                     <Card key={post.id}>
                       <CardHeader>
                         <CardTitle className="text-sm font-medium">
@@ -126,7 +140,22 @@ function App() {
                         </CardDescription>
                       </CardHeader>
                     </Card>
-                  ))}
+                  ))} */}
+                  {data
+                    ?.filter((post) => post.id >= 60 && post.userId == 10)
+                    .slice(0, 5)
+                    .map((post) => (
+                      <Card key={post.id}>
+                        <CardHeader>
+                          <CardTitle className="text-sm font-medium">{post.title}</CardTitle>
+                          <CardDescription className="text-xs line-clamp-2">
+                            {post.body}
+                          </CardDescription>
+                        </CardHeader>
+                      </Card>
+                    ))}
+
+
                 </div>
               </ScrollArea>
             </CardContent>

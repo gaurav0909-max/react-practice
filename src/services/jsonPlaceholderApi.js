@@ -5,8 +5,10 @@ export const jsonPlaceholderApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: "https://jsonplaceholder.typicode.com/",
   }),
+  refetchOnFocus: true,
   endpoints: (builder) => ({
     getPosts: builder.query({ query: () => "posts" }),
+    keepUnusedDataFor: 20,
     cretePosts: builder.mutation({
       query: (newPost) => ({
         url: "posts",
